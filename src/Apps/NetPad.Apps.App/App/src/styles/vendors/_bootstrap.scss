@@ -80,7 +80,7 @@ textarea.form-control {
 
     &.active {
         @include theme(background-color, activeColor);
-        @include theme(color, textHighestContrastColor);
+        @include theme(color, textStrongColor);
     }
 
     &.active:hover {
@@ -140,5 +140,5 @@ textarea.form-control {
 }
 
 .badge {
-    @include theme(color, textHighestContrastColor);
+    @include theme(color, textStrongColor);
 }
