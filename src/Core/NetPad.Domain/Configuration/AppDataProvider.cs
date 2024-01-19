@@ -23,6 +23,7 @@ public static class AppDataProvider
     public static readonly DirectoryPath ExternalProcessesDirectoryPath = TempDirectoryPath.Combine("Processes");
     public static readonly DirectoryPath TypedDataContextTempDirectoryPath = TempDirectoryPath.Combine("TypedDataContexts");
     public static readonly DirectoryPath TypedDataContextCacheDirectoryPath = AppDataDirectoryPath.Combine("Cache", "TypedDataContexts");
+    public static readonly DirectoryPath PublishScriptTempDirectoryPath = TempDirectoryPath.Combine("Publish");
 
     public static class Defaults
     {

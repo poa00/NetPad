@@ -85,9 +85,9 @@ public class AppOmniSharpServer
             _environment.Script.Config.UseAspNet ? DotNetSdkPack.AspNetApp : DotNetSdkPack.NetApp,
             true);
 
-        await Project.SetProjectPropertyAsync("AllowUnsafeBlocks", "true");
+        await Project.SetAllowUnsafeBlocksAsync();
 
-        await SetPreprocessorSymbolsAsync();
+        await Project.SetPreprocessorSymbolsAsync(PreprocessorSymbols.For(_environment.Script.Config.OptimizationLevel));
 
         await Project.AddReferencesAsync(_environment.GetScriptRuntimeUserAccessibleAssemblies().Select(a => new AssemblyFileReference(a)));
 
@@ -100,30 +100,6 @@ public class AppOmniSharpServer
         await _eventBus.PublishAsync(new OmniSharpServerStartedEvent(this));
 
         return true;
-    }
-
-    private async Task SetPreprocessorSymbolsAsync()
-    {
-        await Project.ModifyProjectFileAsync(root =>
-        {
-            var existing = root.Elements()
-                .FirstOrDefault(el =>
-                {
-                    var children = el.Elements().ToArray();
-
-                    return children.Length == 1 && children[0].Name == "DefineConstants";
-                });
-
-            // Remove the existing group
-            existing?.Remove();
-
-            var symbols = string.Join(";", PreprocessorSymbols.For(_environment.Script.Config.OptimizationLevel)) + ";";
-
-            // Add a new group
-            root.Add(XElement.Parse(@$"<PropertyGroup>
-    <DefineConstants>{symbols}</DefineConstants>
-</PropertyGroup>"));
-        });
     }
 
     /// <summary>
@@ -304,7 +280,7 @@ public class AppOmniSharpServer
         {
             if (ev.Script.Id != _environment.Script.Id) return;
 
-            await SetPreprocessorSymbolsAsync();
+            await Project.SetPreprocessorSymbolsAsync(PreprocessorSymbols.For(_environment.Script.Config.OptimizationLevel));
             await NotifyOmniSharpServerProjectFileChangedAsync();
         });
 

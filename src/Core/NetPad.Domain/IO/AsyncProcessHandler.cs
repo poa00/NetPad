@@ -23,7 +23,11 @@ public class ProcessStartResult
     public Task<int> WaitForExitTask { get; }
 }
 
-public sealed class ProcessHandler : IDisposable
+/// <summary>
+/// A utility that provides methods to asynchronously manage running/stopping a process as well as collecting its output.
+/// Best suited for long-running processes where we want to collect its output in real-time.
+/// </summary>
+public sealed class AsyncProcessHandler : IDisposable
 {
     private readonly string? _commandText;
     private readonly string? _args;
@@ -33,18 +37,18 @@ public sealed class ProcessHandler : IDisposable
     private Task<int>? _processStartTask;
     private bool _isDisposed;
 
-    public ProcessHandler(string commandText) : this(commandText, null)
+    public AsyncProcessHandler(string commandText) : this(commandText, null)
     {
         _commandText = commandText ?? throw new ArgumentNullException(nameof(commandText));
     }
 
-    public ProcessHandler(string commandText, string? args)
+    public AsyncProcessHandler(string commandText, string? args)
     {
         _commandText = commandText ?? throw new ArgumentNullException(nameof(commandText));
         _args = args;
     }
 
-    public ProcessHandler(ProcessStartInfo processStartInfo)
+    public AsyncProcessHandler(ProcessStartInfo processStartInfo)
     {
         _processStartInfo = processStartInfo ?? throw new ArgumentNullException(nameof(processStartInfo));
     }
@@ -113,7 +117,7 @@ public sealed class ProcessHandler : IDisposable
         {
             if (_process.IsProcessRunning())
             {
-                _process.Kill();
+                _process.Kill(true);
             }
 
             _processStartTask = null;
@@ -181,7 +185,7 @@ public sealed class ProcessHandler : IDisposable
     {
         if (_isDisposed)
         {
-            throw new ObjectDisposedException(nameof(ProcessHandler), "The process handler is disposed.");
+            throw new ObjectDisposedException(nameof(AsyncProcessHandler), "The process handler is disposed.");
         }
     }
 }

@@ -5,5 +5,5 @@ namespace NetPad.Plugins.OmniSharp;
 
 public static class Consts
 {
-    public static DirectoryPath OmniSharpServerProcessesDirectoryPath = AppDataProvider.TempDirectoryPath.Combine("OmniSharp");
+    public static readonly DirectoryPath OmniSharpServerProcessesDirectoryPath = AppDataProvider.TempDirectoryPath.Combine("OmniSharp");
 }

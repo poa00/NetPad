@@ -212,24 +212,50 @@ public class DotNetCSharpProject
     }
 
     /// <summary>
-    /// Runs 'dotnet restore' on project.
+    /// Sets the supported pre-processor symbols in the project file.
     /// </summary>
-    public virtual async Task RestoreAsync()
+    /// <param name="preprocessorSymbols">The pre-processor symbols to set.</param>
+    public async Task SetPreprocessorSymbolsAsync(string[] preprocessorSymbols)
     {
-        EnsurePackageCacheDirectoryExists();
-
-        using var process = Process.Start(new ProcessStartInfo(
-            _dotNetInfo.LocateDotNetExecutableOrThrow(),
-            $"restore \"{ProjectFilePath}\"")
+        await ModifyProjectFileAsync(root =>
         {
-            UseShellExecute = false,
-            WorkingDirectory = ProjectDirectoryPath,
-            CreateNoWindow = true
+            var existing = root.Elements()
+                .FirstOrDefault(el =>
+                {
+                    var children = el.Elements().ToArray();
+
+                    return children.Length == 1 && children[0].Name == "DefineConstants";
+                });
+
+            // Remove the existing group
+            existing?.Remove();
+
+            var symbols = string.Join(";", preprocessorSymbols) + ";";
+
+            // Add a new group
+            root.Add(XElement.Parse(@$"<PropertyGroup>
+    <DefineConstants>{symbols}</DefineConstants>
+</PropertyGroup>"));
         });
+    }
 
-        if (process != null)
+    /// <summary>
+    /// Sets the the "AllowUnsafeBlocks" property in the project file which allows/disallows the use of the "unsafe" keyword.
+    /// </summary>
+    public async Task SetAllowUnsafeBlocksAsync(bool allow = true)
+    {
+        await SetProjectPropertyAsync("AllowUnsafeBlocks", allow ? "true" : "false");
+    }
+
+    /// <summary>
+    /// Adds a collection of references to this project.
+    /// </summary>
+    /// <param name="references">The references to add.</param>
+    public async Task AddReferencesAsync(IEnumerable<Reference> references)
+    {
+        foreach (var reference in references)
         {
-            await process.WaitForExitAsync();
+            await AddReferenceAsync(reference);
         }
     }
 
@@ -259,6 +285,18 @@ public class DotNetCSharpProject
     }
 
     /// <summary>
+    /// Removes a collection of references from this project.
+    /// </summary>
+    /// <param name="references">The references to remove.</param>
+    public async Task RemoveReferencesAsync(IEnumerable<Reference> references)
+    {
+        foreach (var reference in references)
+        {
+            await RemoveReferenceAsync(reference);
+        }
+    }
+
+    /// <summary>
     /// Removes a reference to this project.
     /// </summary>
     /// <param name="reference">The reference to remove.</param>
@@ -281,22 +319,6 @@ public class DotNetCSharpProject
         }
 
         throw new InvalidOperationException($"Unhandled reference type: {reference.GetType().FullName}");
-    }
-
-    public async Task AddReferencesAsync(IEnumerable<Reference> references)
-    {
-        foreach (var reference in references)
-        {
-            await AddReferenceAsync(reference);
-        }
-    }
-
-    public async Task RemoveReferencesAsync(IEnumerable<Reference> references)
-    {
-        foreach (var reference in references)
-        {
-            await RemoveReferenceAsync(reference);
-        }
     }
 
     /// <summary>

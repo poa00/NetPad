@@ -40,6 +40,8 @@ public class ExternalProcessRuntimeCSharpCodeParser : ICodeParser
     {
         var list = namespaces != null ? namespaces.ToList() : new List<string>();
 
+        // These namespaces are embedded within the .NET Web SDK. Normally MSBuild will include these implicit
+        // global usings automatically, but that's MSBuild, here we need include them manually.
         list.AddRange(new[]
         {
             "System.Net.Http.Json",

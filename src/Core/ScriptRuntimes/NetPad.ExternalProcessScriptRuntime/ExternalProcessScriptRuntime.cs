@@ -24,7 +24,7 @@ public sealed partial class ExternalProcessScriptRuntime : IScriptRuntime
     private readonly HashSet<IOutputWriter<object>> _externalOutputWriters;
     private readonly DirectoryInfo _externalProcessRootDirectory;
     private readonly RawOutputHandler _rawOutputHandler;
-    private ProcessHandler? _processHandler;
+    private AsyncProcessHandler? _processHandler;
 
     public ExternalProcessScriptRuntime(
         Script script,
@@ -88,7 +88,7 @@ public sealed partial class ExternalProcessScriptRuntime : IScriptRuntime
             // Reset raw output order
             _rawOutputHandler.Reset();
 
-            _processHandler = new ProcessHandler(
+            _processHandler = new AsyncProcessHandler(
                 _dotNetInfo.LocateDotNetExecutableOrThrow(),
                 $"{scriptAssemblyFilePath.Path} -html"
             );
