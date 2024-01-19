@@ -253,6 +253,12 @@ button > .icon-base {
     @extend .fa-cloud;
 }
 
+.github-icon {
+    @extend %icon-base;
+    @extend %fa-brands;
+    @extend .fa-github;
+}
+
 // CONTEXTUAL ICONS
 .window-close-icon {
     @extend %icon-base;
@@ -532,10 +538,9 @@ button > .icon-base {
     @extend .fa-bolt;
 }
 
-.github-icon {
+.publish-icon {
     @extend %icon-base;
-    @extend %fa-brands;
-    @extend .fa-github;
+    @extend .fa-globe;
 }
 
 .uncolored-icons [class*="-icon"] {

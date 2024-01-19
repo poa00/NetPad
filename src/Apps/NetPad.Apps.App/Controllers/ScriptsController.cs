@@ -182,6 +182,14 @@ public class ScriptsController : Controller
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/publish")]
+    public async Task<IActionResult> Publish(Guid id, [FromBody] DotNetPublishOptions options)
+    {
+        var environment = await GetScriptEnvironmentAsync(id);
+        await _mediator.Send(new PublishScriptCommand(environment.Script, options));
+        return NoContent();
+    }
+
     private async Task<ScriptEnvironment> GetScriptEnvironmentAsync(Guid id)
     {
         var environment = await _mediator.Send(new GetOpenedScriptEnvironmentQuery(id, true));

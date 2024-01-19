@@ -1,0 +1,240 @@
+<template class="publish-script-dialog">
+    <div class="flex-grow-1 d-flex flex-column">
+        <h4 class="d-flex justify-content-between">
+            Publish
+            <i class="publish-icon"></i>
+        </h4>
+
+        <div class="mb-4">
+            <span class="badge text-bg-warning">Experimental</span>
+        </div>
+
+        <div class="flex-grow-1 d-flex flex-column">
+            <div class="publish-options">
+                <div class="option-row">
+                    <label class="label">Script</label>
+                    <div class="input d-flex align-items-center justify-content-between">
+                        <span class="fw-bold">${script.name}</span>
+                        <span class="badge text-bg-info"
+                              style="font-size: 0.9rem"
+                              title="The framework version that will be used">
+                            ${script.config.targetFrameworkVersion.replace('DotNet', 'net')}.0
+                        </span>
+                    </div>
+                </div>
+                <div class="option-row">
+                    <label class="label" for="outputKind"
+                           title="The kind of assembly to generate">Output</label>
+                    <div class="input">
+                        <select class="form-select form-select"
+                                id="outputKind"
+                                value.bind="options.outputKind">
+                            <option value="ConsoleApplication" title="Publish an executable program.">Executable
+                            </option>
+                            <option value="DynamicallyLinkedLibrary"
+                                    title="Publish a DLL (Dynamically Linked Library) assembly.">Library
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="option-row">
+                    <label class="label" for="directoryPath">Publish directory</label>
+                    <div class="input">
+                        <div class="d-flex">
+                            <input type="text"
+                                   class="form-control"
+                                   id="directoryPath"
+                                   value.bind="options.directoryPath">
+
+                            <button class="btn btn-sm btn-secondary ms-3 btn-basic" click.trigger="browseInput.click()">
+                                <i class="search-icon"></i>
+                            </button>
+                            <input class="d-none" ref="browseInput" type="file" files.bind="browsedFileList"
+                                   webkitdirectory directory>
+                        </div>
+                    </div>
+                </div>
+                <div class="option-row">
+                    <label class="label" for="optimizationLevel">Configuration</label>
+                    <div class="input">
+                        <select class="form-select form-select"
+                                id="optimizationLevel"
+                                value.bind="options.optimizationLevel">
+                            <option value="Release" title="With compiler optimizations">Release</option>
+                            <option value="Debug" title="Without compiler optimizations">Debug</option>
+                        </select>
+                    </div>
+                </div>
+                <!--                <div class="option-row">-->
+                <!--                    <label class="label">Framework</label>-->
+                <!--                    <div class="input">-->
+                <!--                        <span class="badge text-bg-info fs-6">${script.config.targetFrameworkVersion.replace('DotNet', 'net')}.0</span>-->
+                <!--                    </div>-->
+                <!--                </div>-->
+                <div class="option-row">
+                    <label class="label" for="selfContained">Deployment</label>
+                    <div class="input">
+                        <select class="form-select form-select"
+                                id="selfContained"
+                                value.bind="deploymentMode">
+                            <option value="framework-dependent"
+                                    title="Publish without including a .NET runtime.
+
+A suitable .NET runtime must be installed on the machine that runs the published assembly.">
+                                Framework-Dependent
+                            </option>
+                            <option value="self-contained" title="Publish a self-contained assembly, including a .NET runtime with the output.
+
+No .NET runtime needs to be installed on the machine that runs the published assembly. Increases the output size.">
+                                Self-contained
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="option-row" title="The target runtime.">
+                    <label class="label" for="runtimeId">Runtime</label>
+                    <div class="input">
+                        <select class="form-select form-select"
+                                id="runtimeId"
+                                value.bind="runtimeId">
+                            <option value="" if.bind="!options.selfContained"
+                                    title="Can run anywhere a suitable .NET runtime is installed.">Portable
+                            </option>
+                            <option value.bind="rid"
+                                    repeat.for="rid of rids"
+                                    title="Target RID: ${rid}">
+                                ${rid}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="option-row option-row-checkbox ${!options.runtimeId ? 'disabled' : ''}"
+                     title="ReadyToRun is a form of ahead-of-time (AOT) compilation that speeds up app startup time but will increase output size.">
+                    <label class="label" for="publishReadyToRun">ReadyToRun compilation</label>
+                    <div class="input">
+                        <div class="form-check">
+                            <input id="publishReadyToRun"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   checked.bind="options.publishReadyToRun"
+                                   disabled.bind="!options.runtimeId">
+                        </div>
+                    </div>
+                </div>
+                <div class="option-row option-row-checkbox ${!options.runtimeId || !options.selfContained ? 'disabled' : ''}"
+                     title="Attempt to trim any unused assemblies to reduce the size of the output.">
+                    <label class="label" for="publishTrimmed">Trim unused assemblies</label>
+                    <div class="input">
+                        <div class="form-check">
+                            <input id="publishTrimmed"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   checked.bind="options.publishTrimmed"
+                                   disabled.bind="!options.runtimeId || !options.selfContained">
+                        </div>
+                    </div>
+                </div>
+                <div class="option-row option-row-checkbox ${!options.runtimeId ? 'disabled' : ''}" title="Publish a single file.">
+                    <label class="label" for="publishSingleFile">Publish single
+                        file</label>
+                    <div class="input">
+                        <div class="form-check">
+                            <input id="publishSingleFile"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   checked.bind="options.publishSingleFile"
+                                   disabled.bind="!options.runtimeId">
+                        </div>
+                    </div>
+                </div>
+                <div class="option-row option-row-checkbox" show.bind="options.publishSingleFile"
+                     title="Embed any native libraries in the single file for self-extract.">
+                    <label class="label" for="embedNativeLibraries">Embed Native libraries</label>
+                    <div class="input">
+                        <div class="form-check">
+                            <input id="embedNativeLibraries"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   checked.bind="options.embedNativeLibraries"
+                                   disabled.bind="!options.publishSingleFile">
+                        </div>
+                    </div>
+                </div>
+                <div class="option-row option-row-checkbox" show.bind="options.publishSingleFile"
+                     title="Embed generated PDB files in the single file for self-extract">
+                    <label class="label" for="embedPdbs">Embed PDB files</label>
+                    <div class="input">
+                        <div class="form-check">
+                            <input id="embedPdbs"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   checked.bind="options.embedPdbs"
+                                   disabled.bind="!options.publishSingleFile">
+                        </div>
+                    </div>
+                </div>
+                <div class="option-row option-row-checkbox" title="Delete all files in the 'Publish directory'">
+                    <label class="label" for="deleteExistingFiles">Delete existing files</label>
+                    <div class="input">
+                        <div class="form-check d-flex">
+                            <input id="deleteExistingFiles"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   checked.bind="options.deleteExistingFiles">
+                            <span class="info-icon text-red ms-3"
+                                  style="padding-top: 2px"
+                                  show.bind="options.deleteExistingFiles"
+                                  title="Will delete all files and sub-directories inside '${options.directoryPath}'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="publish-cmd">
+                <b class="d-block text-muted">command</b>
+                <div class="mt-3"><code>${publishCmd}</code></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="buttons">
+            <button class="btn btn-primary"
+                    click.trigger="publish()">
+                Publish
+            </button>
+            <button class="btn btn-secondary"
+                    click.trigger="cancel()">
+                Close
+            </button>
+        </div>
+    </div>
+
+
+    <!--            <div class="w-50">-->
+    <!--                <div if.bind="exportType === 'Executable'">-->
+    <!--                    <p>-->
+    <!--                        This will export your script as an executable. Once exported-->
+    <!--                        you can run it like:-->
+    <!--                    </p>-->
+
+    <!--                    <div class="p-4 mt-5" style="background: rgba(128,128,128,0.05)">-->
+    <!--                        <code>-->
+    <!--                            /path/to/executable-->
+    <!--                        </code>-->
+    <!--                    </div>-->
+    <!--                </div>-->
+    <!--                <div else>-->
+    <!--                    <p>-->
+    <!--                        This will export your script as an assembly along with all its dependencies. Once exported-->
+    <!--                        you can run it like:-->
+    <!--                    </p>-->
+
+    <!--                    <div class="p-4 mt-5" style="background: rgba(128,128,128,0.05)">-->
+    <!--                        <code>-->
+    <!--                            dotnet /path/to/export/script.dll-->
+    <!--                        </code>-->
+    <!--                    </div>-->
+    <!--                </div>-->
+    <!--            </div>-->
+</template>

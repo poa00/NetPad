@@ -1,10 +1,11 @@
 import {DI} from "aurelia";
 import {IMenuItem} from "./imenu-item";
 import {System} from "@common";
-import {ISettingsService, IWindowService} from "@domain";
+import {ISession, ISettingsService, IWindowService} from "@domain";
 import {IShortcutManager, ShortcutIds} from "@application";
 import {ITextEditorService} from "@application/editor/text-editor-service";
 import {AppUpdateDialog} from "@application/dialogs/app-update-dialog/app-update-dialog";
+import {PublishScriptDialog} from "@application/dialogs/publish-script-dialog/publish-script-dialog";
 import {DialogUtil} from "@application/dialogs/dialog-util";
 
 export const IMainMenuService = DI.createInterface<MainMenuService>();
@@ -29,6 +30,7 @@ export class MainMenuService implements IMainMenuService {
         @IShortcutManager private readonly shortcutManager: IShortcutManager,
         @ITextEditorService private readonly textEditorService: ITextEditorService,
         @IWindowService private readonly windowService: IWindowService,
+        @ISession private readonly session: ISession,
         private readonly dialogUtil: DialogUtil
     ) {
         this._items = [
@@ -66,6 +68,19 @@ export class MainMenuService implements IMainMenuService {
                         text: "Properties",
                         icon: "properties-icon",
                         shortcut: this.shortcutManager.getShortcut(ShortcutIds.openDocumentProperties),
+                    },
+                    {
+                        id: "file.exportToExe",
+                        text: "Export executable...",
+                        icon: "publish-icon",
+                        click: () => {
+                            const script = this.session.active?.script;
+                            if (script) {
+                                return this.dialogUtil.toggle(PublishScriptDialog, {script: script});
+                            }
+
+                            return Promise.resolve();
+                        },
                     },
                     {
                         id: "file.close",
@@ -299,6 +314,13 @@ export class MainMenuService implements IMainMenuService {
                 ]
             }
         ];
+
+        setTimeout(() => {
+            const script = this.session.active?.script;
+            if (script) {
+                this.dialogUtil.toggle(PublishScriptDialog, {script: script});
+            }
+        }, 1000);
     }
 
     public get items(): ReadonlyArray<IMenuItem> {

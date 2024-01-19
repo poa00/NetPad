@@ -1286,6 +1286,8 @@ export interface IScriptsApiClient {
     setUseAspNet(id: string, useAspNet: boolean, signal?: AbortSignal | undefined): Promise<FileResponse | null>;
 
     setDataConnection(id: string, dataConnectionId: string | null | undefined, signal?: AbortSignal | undefined): Promise<FileResponse | null>;
+
+    publish(id: string, options: DotNetPublishOptions, signal?: AbortSignal | undefined): Promise<FileResponse | null>;
 }
 
 export class ScriptsApiClient extends ApiClientBase implements IScriptsApiClient {
@@ -1891,6 +1893,46 @@ export class ScriptsApiClient extends ApiClientBase implements IScriptsApiClient
     }
 
     protected processSetDataConnection(response: Response): Promise<FileResponse | null> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            const fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+            const fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse | null>(<any>null);
+    }
+
+    publish(id: string, options: DotNetPublishOptions, signal?: AbortSignal | undefined): Promise<FileResponse | null> {
+        let url_ = this.baseUrl + "/scripts/{id}/publish";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(options);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "PATCH",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.makeFetchCall(url_, options_, () => this.http.fetch(url_, options_)).then((_response: Response) => {
+            return this.processPublish(_response);
+        });
+    }
+
+    protected processPublish(response: Response): Promise<FileResponse | null> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200 || status === 206) {
@@ -4086,6 +4128,95 @@ export interface ISourceCodeDto {
 }
 
 export type OptimizationLevel = "Debug" | "Release";
+
+export class DotNetPublishOptions implements IDotNetPublishOptions {
+    assemblyName!: string;
+    directoryPath!: string;
+    outputKind!: OutputKind;
+    optimizationLevel!: OptimizationLevel;
+    runtimeId?: string | undefined;
+    selfContained!: boolean;
+    publishReadyToRun!: boolean;
+    publishSingleFile!: boolean;
+    publishTrimmed!: boolean;
+    embedNativeLibraries!: boolean;
+    embedPdbs!: boolean;
+    deleteExistingFiles!: boolean;
+
+    constructor(data?: IDotNetPublishOptions) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.assemblyName = _data["assemblyName"];
+            this.directoryPath = _data["directoryPath"];
+            this.outputKind = _data["outputKind"];
+            this.optimizationLevel = _data["optimizationLevel"];
+            this.runtimeId = _data["runtimeId"];
+            this.selfContained = _data["selfContained"];
+            this.publishReadyToRun = _data["publishReadyToRun"];
+            this.publishSingleFile = _data["publishSingleFile"];
+            this.publishTrimmed = _data["publishTrimmed"];
+            this.embedNativeLibraries = _data["embedNativeLibraries"];
+            this.embedPdbs = _data["embedPdbs"];
+            this.deleteExistingFiles = _data["deleteExistingFiles"];
+        }
+    }
+
+    static fromJS(data: any): DotNetPublishOptions {
+        data = typeof data === 'object' ? data : {};
+        let result = new DotNetPublishOptions();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["assemblyName"] = this.assemblyName;
+        data["directoryPath"] = this.directoryPath;
+        data["outputKind"] = this.outputKind;
+        data["optimizationLevel"] = this.optimizationLevel;
+        data["runtimeId"] = this.runtimeId;
+        data["selfContained"] = this.selfContained;
+        data["publishReadyToRun"] = this.publishReadyToRun;
+        data["publishSingleFile"] = this.publishSingleFile;
+        data["publishTrimmed"] = this.publishTrimmed;
+        data["embedNativeLibraries"] = this.embedNativeLibraries;
+        data["embedPdbs"] = this.embedPdbs;
+        data["deleteExistingFiles"] = this.deleteExistingFiles;
+        return data;
+    }
+
+    clone(): DotNetPublishOptions {
+        const json = this.toJSON();
+        let result = new DotNetPublishOptions();
+        result.init(json);
+        return result;
+    }
+}
+
+export interface IDotNetPublishOptions {
+    assemblyName: string;
+    directoryPath: string;
+    outputKind: OutputKind;
+    optimizationLevel: OptimizationLevel;
+    runtimeId?: string | undefined;
+    selfContained: boolean;
+    publishReadyToRun: boolean;
+    publishSingleFile: boolean;
+    publishTrimmed: boolean;
+    embedNativeLibraries: boolean;
+    embedPdbs: boolean;
+    deleteExistingFiles: boolean;
+}
+
+export type OutputKind = "ConsoleApplication" | "WindowsApplication" | "DynamicallyLinkedLibrary" | "NetModule" | "WindowsRuntimeMetadata" | "WindowsRuntimeApplication";
 
 export class ScriptEnvironment implements IScriptEnvironment {
     script!: Script;

@@ -1,0 +1,50 @@
+@import "~styles/themes";
+
+.publish-script-dialog {
+    display: flex;
+    flex-direction: column;
+    width: 600px;
+    min-height: 600px;
+    padding: 2rem;
+
+    .publish-options {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+
+        .option-row {
+            display: flex;
+            margin-bottom: 0.5rem;
+            user-select: none;
+
+            &.disabled {
+                opacity: 0.5;
+            }
+
+            .label {
+                min-width: 200px;
+            }
+
+            .input {
+                flex-grow: 1;
+            }
+        }
+
+        .option-row:not(.option-row-checkbox)+.option-row-checkbox {
+            margin-top: 0.15rem;
+        }
+
+        .option-row-checkbox {
+            margin-bottom: 0.15rem;
+        }
+    }
+
+    .publish-cmd {
+        @include theme(background-color, backgroundDarkerColor);
+        padding: 1rem;
+    }
+
+    .bottom-bar {
+        margin-top: 2rem !important;
+    }
+}

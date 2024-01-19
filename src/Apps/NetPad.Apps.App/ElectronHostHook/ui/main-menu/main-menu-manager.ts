@@ -100,6 +100,7 @@ export class MainMenuManager {
                     this.fromAppMenuItem("file.save"),
                     this.fromAppMenuItem("file.saveAll"),
                     this.fromAppMenuItem("file.properties"),
+                    this.fromAppMenuItem("file.exportToExe"),
                     this.fromAppMenuItem("file.close"),
                     {type: "separator"},
                     this.fromAppMenuItem("file.settings"),
