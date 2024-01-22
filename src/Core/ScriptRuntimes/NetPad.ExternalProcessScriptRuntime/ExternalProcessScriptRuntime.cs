@@ -156,7 +156,7 @@ public sealed partial class ExternalProcessScriptRuntime : IScriptRuntime
         {
             try
             {
-                _externalProcessRootDirectory.Delete(true);
+                //_externalProcessRootDirectory.Delete(true);
             }
             catch (Exception ex)
             {

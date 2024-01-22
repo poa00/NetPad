@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Microsoft.CodeAnalysis;
+using NetPad.IO;
 
 namespace NetPad.DotNet;
 
@@ -116,6 +118,70 @@ public class DotNetCSharpProject
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Runs 'dotnet restore' on project.
+    /// </summary>
+    public async Task RestoreAsync()
+    {
+        EnsurePackageCacheDirectoryExists();
+
+        await ProcessHandler.Create(new ProcessStartInfo(
+                _dotNetInfo.LocateDotNetExecutableOrThrow(),
+                $"restore \"{ProjectFilePath}\"")
+            {
+                WorkingDirectory = ProjectDirectoryPath,
+            })
+            .RunAsync();
+    }
+
+    public async Task PublishAsync(DotNetPublishOptions options, CancellationToken cancellationToken = default)
+    {
+        var outputPath = options.DirectoryPath;
+
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            throw new ArgumentException("Cannot be null or empty", nameof(outputPath));
+        }
+
+        if (options.DeleteExistingFiles && File.Exists(outputPath))
+        {
+            Directory.Delete(outputPath, true);
+            Directory.CreateDirectory(outputPath);
+        }
+
+        var args = new List<string>
+        {
+            "publish",
+            "--nologo",
+            $"-c {(options.OptimizationLevel == OptimizationLevel.Debug ? "Debug" : "Release")}",
+            string.IsNullOrWhiteSpace(options.RuntimeId) ? string.Empty : $"-r {options.RuntimeId}",
+            $"-o \"{outputPath}\"",
+            $"--self-contained {(options.SelfContained ? "true" : "false")}",
+            $"-p:PublishReadyToRun={(options.PublishReadyToRun ? "true" : "false")}",
+            $"-p:PublishSingleFile={(options.PublishSingleFile ? "true" : "false")}",
+            $"-p:IncludeNativeLibrariesForSelfExtract={(options.EmbedNativeLibraries ? "true" : "false")}",
+        };
+
+        if (options.EmbedPdbs)
+        {
+            args.Add("-p:DebugType=embedded");
+        }
+
+        var result = await ProcessHandler.Create(
+                new ProcessStartInfo
+                {
+                    FileName = _dotNetInfo.LocateDotNetExecutableOrThrow(),
+                    Arguments = args.JoinToString(" "),
+                    WorkingDirectory = ProjectDirectoryPath
+                })
+            .RunAsync(cancellationToken);
+
+        result.EnsureSuccessful();
+
+        await File.WriteAllTextAsync("/home/tips/test-o.txt", result.Output ?? "");
+        await File.WriteAllTextAsync("/home/tips/test-e.txt", result.Error ?? "");
     }
 
     /// <summary>
@@ -463,20 +529,15 @@ public class DotNetCSharpProject
             var packageId = reference.PackageId;
             var packageVersion = reference.Version;
 
-            using var process = Process.Start(new ProcessStartInfo(_dotNetInfo.LocateDotNetExecutableOrThrow(),
-                $"add \"{ProjectFilePath}\" package {packageId} " +
-                $"--version {packageVersion} " +
-                $"--package-directory \"{PackageCacheDirectoryPath}\"")
-            {
-                UseShellExecute = false,
-                WorkingDirectory = ProjectDirectoryPath,
-                CreateNoWindow = true
-            });
-
-            if (process != null)
-            {
-                await process.WaitForExitAsync();
-            }
+            await ProcessHandler.Create(new ProcessStartInfo(
+                    _dotNetInfo.LocateDotNetExecutableOrThrow(),
+                    $"add \"{ProjectFilePath}\" package {packageId} " +
+                    $"--version {packageVersion} " +
+                    $"--package-directory \"{PackageCacheDirectoryPath}\"")
+                {
+                    WorkingDirectory = ProjectDirectoryPath,
+                })
+                .RunAsync();
         }
         finally
         {
@@ -506,32 +567,22 @@ public class DotNetCSharpProject
 
             var dotnetExe = _dotNetInfo.LocateDotNetExecutableOrThrow();
 
-            using var process = Process.Start(new ProcessStartInfo(dotnetExe,
-                $"remove \"{ProjectFilePath}\" package {packageId}")
-            {
-                UseShellExecute = false,
-                WorkingDirectory = ProjectDirectoryPath,
-                CreateNoWindow = true
-            });
-
-            if (process != null)
-            {
-                await process.WaitForExitAsync();
-            }
+            await ProcessHandler.Create(new ProcessStartInfo(
+                    dotnetExe,
+                    $"remove \"{ProjectFilePath}\" package {packageId}")
+                {
+                    WorkingDirectory = ProjectDirectoryPath,
+                })
+                .RunAsync();
 
             // This is needed so that 'project.assets.json' file is updated properly
-            using var process2 = Process.Start(new ProcessStartInfo(dotnetExe,
-                $"restore {ProjectFilePath}")
-            {
-                UseShellExecute = false,
-                WorkingDirectory = ProjectDirectoryPath,
-                CreateNoWindow = true
-            });
-
-            if (process2 != null)
-            {
-                await process2.WaitForExitAsync();
-            }
+            await ProcessHandler.Create(new ProcessStartInfo(
+                    dotnetExe,
+                    $"restore {ProjectFilePath}")
+                {
+                    WorkingDirectory = ProjectDirectoryPath,
+                })
+                .RunAsync();
         }
         finally
         {
