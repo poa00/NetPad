@@ -68,3 +68,11 @@
 </h6>
 
 <script-folder folder.bind="rootScriptFolder" vm.bind="$this"></script-folder>
+
+<div class="mt-5 p-3">
+    <textarea class="form-control" rows="20" value.bind="styles"></textarea>
+    <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" checked.bind="applyUserStyles" id="applyUserStyles">
+        <label class="form-check-label" for="applyUserStyles">Enabled</label>
+    </div>
+</div>

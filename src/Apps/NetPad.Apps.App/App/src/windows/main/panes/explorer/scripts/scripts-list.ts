@@ -15,8 +15,69 @@ import {ViewModelBase} from "@application";
 import {ILogger} from "aurelia";
 import {ScriptFolderViewModel} from "./script-folder-view-model";
 import {ScriptViewModel} from "./script-view-model";
+import {observable} from "@aurelia/runtime";
 
 export class ScriptsList extends ViewModelBase {
+    @observable() private applyUserStyles = false;
+    @observable() private styles = `:root {
+  --theme-netpad-dark-textColor: white;
+}
+
+.action-icon {
+   opacity: 0.5;
+}
+
+.action-icon:hover {
+   opacity: 1;
+}
+
+.output-container {
+    background-color: black;
+}
+
+.output-container .property-name {
+    background-color: green;
+}
+
+.output-container .property-value {
+    color: orange;
+}`;
+
+//     @observable() private styles = `:root {
+//
+// }
+//
+// .output-container {
+//
+// }
+// `;
+
+
+    stylesChanged() {
+        const css = this.applyUserStyles ? this.styles : "";
+
+        let style = document.getElementById("user-styles");
+
+        if (!style) {
+            style = document.createElement("style");
+
+            const head = document.head || document.getElementsByTagName('head')[0];
+            head.appendChild(style);
+
+            style.id = "user-styles";
+            style.setAttribute("type", "text/css");
+            style.appendChild(document.createTextNode(css));
+        }
+        else {
+            style.replaceChildren(document.createTextNode(css));
+        }
+    }
+
+    applyUserStylesChanged() {
+        this.stylesChanged();
+    }
+
+
     private readonly rootScriptFolder: ScriptFolderViewModel;
     private scriptsMap: Map<string, ScriptViewModel>;
 
@@ -44,6 +105,18 @@ export class ScriptsList extends ViewModelBase {
         this.eventBus.subscribeToServer(ScriptDirectoryChangedEvent, msg => {
             this.loadScripts(msg.scripts);
         });
+
+        setTimeout(() => {
+            this.stylesChanged();
+        }, 2000);
+
+        // const styles = [...new Set(
+        //     Array.from(document.head.querySelectorAll("style"))
+        //         .map(s => s.outerHTML)
+        //         .filter(x => x.indexOf("output-view") >= 0)
+        // )].join("\n");
+        //
+        // this.styles = styles;
     }
 
     public async openScriptsFolder(folder: ScriptFolderViewModel) {
